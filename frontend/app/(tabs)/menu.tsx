@@ -143,6 +143,20 @@ export default function MenuScreen() {
     Linking.openURL(whatsappUrl);
   };
 
+  const addToCart = (product: Product) => {
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+    });
+    
+    Alert.alert('Adicionado!', `${product.name} foi adicionado ao carrinho`, [
+      { text: 'OK' },
+      { text: 'Ver Carrinho', onPress: () => router.push('/cart') }
+    ]);
+  };
+
   const filteredProducts = selectedCategory
     ? products.filter(p => p.category_id === selectedCategory && p.active)
     : products.filter(p => p.active);
