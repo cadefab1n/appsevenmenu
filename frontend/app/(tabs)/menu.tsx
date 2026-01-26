@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   useColorScheme,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -28,6 +29,8 @@ interface Product {
   badges: string[];
   category_id: string;
   active: boolean;
+  stock_enabled: boolean;
+  stock_quantity: number;
 }
 
 interface Category {
@@ -134,16 +137,17 @@ export default function MenuScreen() {
     }
   };
 
-  const orderOnWhatsApp = (product: Product) => {
-    if (!restaurant) return;
-    
-    const message = `Olá! Gostaria de pedir:\n\n*${product.name}*\nValor: R$ ${product.price.toFixed(2)}\n\nObrigado!`;
-    const whatsappUrl = `https://wa.me/${restaurant.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-    
-    Linking.openURL(whatsappUrl);
+  const checkStock = (product: Product): boolean => {
+    if (!product.stock_enabled) return true;
+    return product.stock_quantity > 0;
   };
 
   const addToCart = (product: Product) => {
+    if (!checkStock(product)) {
+      Alert.alert('Sem estoque', 'Este produto está temporariamente indisponível');
+      return;
+    }
+
     addItem({
       id: product.id,
       name: product.name,
@@ -152,7 +156,7 @@ export default function MenuScreen() {
     });
     
     Alert.alert('Adicionado!', `${product.name} foi adicionado ao carrinho`, [
-      { text: 'OK' },
+      { text: 'Continuar', style: 'cancel' },
       { text: 'Ver Carrinho', onPress: () => router.push('/cart') }
     ]);
   };
@@ -161,9 +165,19 @@ export default function MenuScreen() {
     ? products.filter(p => p.category_id === selectedCategory && p.active)
     : products.filter(p => p.active);
 
-  // Separar produtos com badges "mais_pedido" para destaque
   const featuredProducts = filteredProducts.filter(p => p.badges.includes('mais_pedido'));
   const regularProducts = filteredProducts.filter(p => !p.badges.includes('mais_pedido'));
+
+  // Group regular products by category
+  const groupedProducts = regularProducts.reduce((groups, product) => {
+    const category = categories.find(c => c.id === product.category_id);
+    const categoryName = category?.name || 'Outros';
+    if (!groups[categoryName]) {
+      groups[categoryName] = [];
+    }
+    groups[categoryName].push(product);
+    return groups;
+  }, {} as Record<string, Product[]>);
 
   if (loading) {
     return (
@@ -190,7 +204,7 @@ export default function MenuScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Compacto */}
+        {/* Header Compacto com Carrinho */}
         <View style={[styles.headerCompact, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
           <View style={styles.headerTop}>
             <View style={styles.restaurantInfo}>
@@ -212,6 +226,16 @@ export default function MenuScreen() {
                 )}
               </View>
             </View>
+            
+            {/* Ícone do Carrinho */}
+            <TouchableOpacity style={styles.cartIconContainer} onPress={() => router.push('/cart')}>
+              <Ionicons name="cart" size={28} color="#ffea07" />
+              {getTotalItems() > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{getTotalItems()}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
           
           {/* Info Bar */}
@@ -278,7 +302,7 @@ export default function MenuScreen() {
           </ScrollView>
         )}
 
-        {/* Produtos em Destaque - Horizontal Scroll */}
+        {/* Produtos em Destaque */}
         {featuredProducts.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: isDark ? '#fff' : '#000' }]}>
@@ -293,21 +317,29 @@ export default function MenuScreen() {
                 <TouchableOpacity
                   key={product.id}
                   style={[styles.featuredCard, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}
-                  onPress={() => orderOnWhatsApp(product)}
+                  onPress={() => addToCart(product)}
+                  disabled={!checkStock(product)}
                 >
                   {product.image ? (
-                    <Image source={{ uri: product.image }} style={styles.featuredImage} />
+                    <Image source={{ uri: product.image }} style={[styles.featuredImage, !checkStock(product) && styles.imageOutOfStock]} />
                   ) : (
                     <View style={styles.featuredImagePlaceholder}>
                       <Ionicons name="image-outline" size={40} color="#ccc" />
                     </View>
                   )}
                   
-                  {/* Badge Destaque */}
                   <View style={styles.featuredBadge}>
                     <Ionicons name="flame" size={14} color="#fff" />
                     <Text style={styles.featuredBadgeText}>Favorito!</Text>
                   </View>
+
+                  {product.stock_enabled && (
+                    <View style={[styles.stockBadge, { backgroundColor: checkStock(product) ? '#4CAF50' : '#F44336' }]}>
+                      <Text style={styles.stockBadgeText}>
+                        {checkStock(product) ? `${product.stock_quantity} disponível` : 'Esgotado'}
+                      </Text>
+                    </View>
+                  )}
 
                   <View style={styles.featuredInfo}>
                     <Text style={[styles.featuredName, { color: isDark ? '#fff' : '#000' }]} numberOfLines={2}>
@@ -321,22 +353,19 @@ export default function MenuScreen() {
           </View>
         )}
 
-        {/* Produtos Regulares - Grid Vertical */}
-        <View style={styles.productsGrid}>
-          {regularProducts.length === 0 && featuredProducts.length === 0 ? (
-            <View style={styles.emptyProducts}>
-              <Ionicons name="fast-food-outline" size={48} color="#ccc" />
-              <Text style={[styles.emptyText, { color: isDark ? '#fff' : '#666' }]}>Nenhum produto encontrado</Text>
-            </View>
-          ) : (
-            regularProducts.map(product => (
+        {/* Produtos Agrupados por Categoria */}
+        {Object.entries(groupedProducts).map(([categoryName, categoryProducts]) => (
+          <View key={categoryName} style={styles.categorySection}>
+            <Text style={[styles.categorySectionTitle, { color: isDark ? '#fff' : '#000' }]}>
+              {categoryName}
+            </Text>
+            {categoryProducts.map(product => (
               <View key={product.id} style={[styles.productCard, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
                 {product.image && (
-                  <Image source={{ uri: product.image }} style={styles.productImage} />
+                  <Image source={{ uri: product.image }} style={[styles.productImage, !checkStock(product) && styles.imageOutOfStock]} />
                 )}
 
                 <View style={styles.productContent}>
-                  {/* Badges */}
                   {product.badges && product.badges.length > 0 && (
                     <View style={styles.badgesRow}>
                       {product.badges.map((badge, idx) => (
@@ -355,23 +384,31 @@ export default function MenuScreen() {
                     {product.description}
                   </Text>
                   
+                  {product.stock_enabled && (
+                    <Text style={[styles.stockText, { color: checkStock(product) ? '#4CAF50' : '#F44336' }]}>
+                      {checkStock(product) ? `${product.stock_quantity} em estoque` : 'Sem estoque'}
+                    </Text>
+                  )}
+
                   <View style={styles.productFooter}>
                     <Text style={styles.productPrice}>R$ {product.price.toFixed(2)}</Text>
                     <TouchableOpacity
-                      style={styles.orderButton}
-                      onPress={() => orderOnWhatsApp(product)}
+                      style={[styles.addButton, !checkStock(product) && styles.addButtonDisabled]}
+                      onPress={() => addToCart(product)}
+                      disabled={!checkStock(product)}
                     >
-                      <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                      <Text style={styles.orderButtonText}>Pedir</Text>
+                      <Ionicons name="cart" size={18} color="#000" />
+                      <Text style={styles.addButtonText}>
+                        {checkStock(product) ? 'Adicionar' : 'Esgotado'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               </View>
-            ))
-          )}
-        </View>
+            ))}
+          </View>
+        ))}
 
-        {/* Footer Spacing */}
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>
@@ -400,12 +437,16 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
   restaurantInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   logoSmall: {
     width: 40,
@@ -432,6 +473,26 @@ const styles = StyleSheet.create({
   },
   restaurantAddress: {
     fontSize: 12,
+  },
+  cartIconContainer: {
+    position: 'relative',
+    padding: 8,
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#FF6B35',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   infoBar: {
     flexDirection: 'row',
@@ -516,6 +577,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  imageOutOfStock: {
+    opacity: 0.5,
+  },
   featuredBadge: {
     position: 'absolute',
     top: 8,
@@ -533,6 +597,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 4,
   },
+  stockBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  stockBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
   featuredInfo: {
     padding: 12,
   },
@@ -546,21 +623,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffea07',
   },
-  productsGrid: {
+  categorySection: {
     paddingHorizontal: 16,
+    marginBottom: 24,
   },
-  emptyProducts: {
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 8,
+  categorySectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   productCard: {
     borderRadius: 16,
@@ -608,30 +678,48 @@ const styles = StyleSheet.create({
   productDescription: {
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  stockText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   productFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
   productPrice: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#ffea07',
   },
-  orderButton: {
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#25D366',
+    backgroundColor: '#ffea07',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 24,
   },
-  orderButtonText: {
-    color: '#fff',
+  addButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  addButtonText: {
+    color: '#000',
     fontSize: 15,
     fontWeight: 'bold',
     marginLeft: 6,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    marginTop: 8,
   },
 });
