@@ -13,9 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
-
-const API_URL = Constants.expoConfig?.extra?.EXPO_BACKEND_URL || process.env.EXPO_BACKEND_URL;
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 interface Product {
   id: string;
