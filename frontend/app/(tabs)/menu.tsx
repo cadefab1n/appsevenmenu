@@ -51,6 +51,8 @@ export default function MenuScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  
+  const { addItem, getTotalItems } = useCartStore();
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
