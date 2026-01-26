@@ -222,21 +222,21 @@ export default function MenuScreen() {
                 {product.image && (
                   <Image source={{ uri: product.image }} style={styles.productImage} />
                 )}
-                
-                {/* Badges */}
-                {product.badges && product.badges.length > 0 && (
-                  <View style={styles.badgesContainer}>
-                    {product.badges.map((badge, idx) => (
-                      <View key={idx} style={styles.badge}>
-                        <Text style={styles.badgeText}>
-                          {getBadgeIcon(badge)} {getBadgeText(badge)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
 
                 <View style={styles.productInfo}>
+                  {/* Badges */}
+                  {product.badges && product.badges.length > 0 && (
+                    <View style={styles.badgesContainer}>
+                      {product.badges.map((badge, idx) => (
+                        <View key={idx} style={styles.badge}>
+                          <Text style={styles.badgeText}>
+                            {getBadgeIcon(badge)} {getBadgeText(badge)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  
                   <Text style={[styles.productName, { color: isDark ? '#fff' : '#000' }]}>{product.name}</Text>
                   <Text style={[styles.productDescription, { color: isDark ? '#aaa' : '#666' }]} numberOfLines={2}>
                     {product.description}
