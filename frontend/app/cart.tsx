@@ -113,7 +113,7 @@ export default function CartScreen() {
     return (
       <View style={[styles.container, { backgroundColor: isDark ? '#000' : '#f5f5f5' }]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/menu')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>Carrinho</Text>
