@@ -126,11 +126,14 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Implementado endpoints para categorias. Testado manualmente - criadas 3 categorias (Pizzas, Bebidas, Sobremesas) com sucesso"
+      - working: true
+        agent: "testing"
+        comment: "✅ CRUD completo testado: GET /restaurants/{id}/categories (listar por restaurante), POST /categories (criar), PUT /categories/{id} (atualizar), DELETE /categories/{id} (deletar). Ordenação por campo 'order' funcionando. Validação correta - impede deletar categoria com produtos. Testado com 3 categorias existentes."
 
   - task: "API de Produtos (CRUD + Toggle)"
     implemented: true
@@ -138,11 +141,14 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Implementado CRUD completo de produtos incluindo toggle de ativo/inativo. Testado manualmente - criados 5 produtos com badges e preços"
+      - working: true
+        agent: "testing"
+        comment: "✅ CRUD + Toggle completo testado: GET /restaurants/{id}/products (todos e filtrado por categoria), GET /products/{id} (específico), POST /products (criar), PUT /products/{id} (atualizar), PATCH /products/{id}/toggle (ativar/desativar), DELETE /products/{id} (deletar). Badges funcionando corretamente (mais_pedido, escolha_inteligente, compartilhar). 5 produtos existentes testados."
 
   - task: "API de QR Code"
     implemented: true
@@ -150,11 +156,14 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Implementado gerador de QR Code em base64 com biblioteca qrcode. Testado - gera QR code com URL do menu"
+      - working: true
+        agent: "testing"
+        comment: "✅ QR Code testado: GET /qrcode/{restaurant_id} retorna base64 válido (data:image/png;base64,) e URL correta (https://menu.seven.app/{id}). Validação de restaurante existente funcionando. Minor: erro 400 em vez de 404 para restaurante inexistente, mas funcionalidade core OK."
 
   - task: "API de Menus por Horário"
     implemented: true
