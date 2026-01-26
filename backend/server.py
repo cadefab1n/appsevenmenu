@@ -81,6 +81,8 @@ class ProductUpdate(BaseModel):
     badges: Optional[List[str]] = None
     active: Optional[bool] = None
     order: Optional[int] = None
+    stock_enabled: Optional[bool] = None
+    stock_quantity: Optional[int] = None
 
 class TimeMenu(BaseModel):
     name: str  # "Almoço", "Happy Hour", "Noite"
