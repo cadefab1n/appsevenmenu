@@ -42,6 +42,9 @@ class Restaurant(BaseModel):
     primary_color: str = "#FF6B35"
     secondary_color: str = "#004E89"
     description: Optional[str] = None
+    accepts_payment_online: bool = False  # Aceita pagamento online
+    accepts_table_service: bool = True  # Aceita atendimento na mesa
+    table_prefix: str = "Mesa"  # Prefixo para identificação de mesa
 
 class RestaurantUpdate(BaseModel):
     name: Optional[str] = None
