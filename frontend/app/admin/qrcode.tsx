@@ -77,7 +77,7 @@ export default function QRCodeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#000' : '#f5f5f5' }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/admin')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push('/admin-dashboard')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>QR Code</Text>
