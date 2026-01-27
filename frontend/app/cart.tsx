@@ -142,28 +142,6 @@ export default function CartScreen() {
       }
     }
   };
-        );
-      } else {
-        // Fallback: tentar abrir mesmo assim
-        await Linking.openURL(whatsappUrl);
-      }
-    } catch (error) {
-      console.error('Erro ao abrir WhatsApp:', error);
-      
-      // Fallback para web
-      if (Platform.OS === 'web') {
-        window.open(whatsappUrl, '_blank');
-        Alert.alert('WhatsApp', 'Nova aba aberta com seu pedido!');
-        return;
-      }
-      
-      Alert.alert(
-        'Não foi possível abrir o WhatsApp',
-        `Entre em contato diretamente pelo número:\n\n📞 ${whatsapp}\n\nOu copie a mensagem e envie manualmente.`,
-        [{ text: 'OK' }]
-      );
-    }
-  };
 
   if (items.length === 0) {
     return (
