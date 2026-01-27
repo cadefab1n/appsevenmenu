@@ -126,7 +126,7 @@ export default function CartScreen() {
           <Text style={[styles.emptySubtext, { color: isDark ? '#aaa' : '#999' }]}>Adicione produtos ao carrinho para fazer seu pedido</Text>
           <TouchableOpacity
             style={styles.continueButton}
-            onPress={() => router.back()}
+            onPress={() => router.push('/menu')}
           >
             <Text style={styles.continueButtonText}>Ver Cardápio</Text>
           </TouchableOpacity>
