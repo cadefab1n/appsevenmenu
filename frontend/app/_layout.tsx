@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
@@ -15,7 +15,7 @@ export default function RootLayout() {
           contentStyle: {
             backgroundColor: isDark ? '#000' : '#f5f5f5',
           },
-          animation: 'slide_from_right',
+          animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
         }}
       >
         <Stack.Screen name="index" />
@@ -23,9 +23,7 @@ export default function RootLayout() {
         <Stack.Screen name="cart" />
         <Stack.Screen name="admin-login" />
         <Stack.Screen name="admin-dashboard" />
-        <Stack.Screen name="admin/categories" />
-        <Stack.Screen name="admin/products" />
-        <Stack.Screen name="admin/qrcode" />
+        <Stack.Screen name="admin" />
       </Stack>
     </>
   );
