@@ -54,39 +54,33 @@ export default function CartScreen() {
       return;
     }
 
-    // Montar mensagem do pedido
-    let message = `🛒 *NOVO PEDIDO - ${restaurantName}*\n`;
-    message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    // Montar mensagem do pedido - SIMPLIFICADA para evitar bloqueios
+    let message = `Olá! Gostaria de fazer um pedido:\n\n`;
     
     items.forEach((item, index) => {
-      message += `${index + 1}. *${item.name}*\n`;
-      message += `   Qtd: ${item.quantity} x R$ ${item.price.toFixed(2)}\n`;
-      message += `   Subtotal: R$ ${(item.price * item.quantity).toFixed(2)}\n\n`;
+      message += `${item.quantity}x ${item.name} - R$ ${(item.price * item.quantity).toFixed(2)}\n`;
     });
     
-    message += `━━━━━━━━━━━━━━━━━━━━\n`;
-    message += `💰 *TOTAL: R$ ${getTotalPrice().toFixed(2)}*\n\n`;
-    message += `📱 Pedido feito pelo cardápio digital\n`;
-    message += `⏰ ${new Date().toLocaleString('pt-BR')}\n\n`;
-    message += `Aguardo confirmação. Obrigado! 🙏`;
+    message += `\nTOTAL: R$ ${getTotalPrice().toFixed(2)}\n\n`;
+    message += `Aguardo confirmação!`;
 
-    // Limpar número (remover caracteres não numéricos)
+    // Limpar número - usar apenas dígitos
     let phoneNumber = whatsapp.replace(/\D/g, '');
     
-    // Garantir formato internacional (Brasil)
-    if (phoneNumber.length === 11 && !phoneNumber.startsWith('55')) {
-      phoneNumber = '55' + phoneNumber;
-    } else if (phoneNumber.length === 10 && !phoneNumber.startsWith('55')) {
+    // Se o número já começa com 55, usar direto
+    // Se não, adicionar 55 (Brasil)
+    if (!phoneNumber.startsWith('55')) {
       phoneNumber = '55' + phoneNumber;
     }
-    
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     
     console.log('=== WhatsApp Debug ===');
     console.log('Número original:', whatsapp);
     console.log('Número formatado:', phoneNumber);
+    
+    // Usar API do WhatsApp - formato mais simples
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    
     console.log('URL:', whatsappUrl);
-    console.log('Mensagem:', message);
     
     try {
       // Na web, abrir diretamente em nova aba
@@ -94,8 +88,8 @@ export default function CartScreen() {
         window.open(whatsappUrl, '_blank');
         
         Alert.alert(
-          '✅ Redirecionando para WhatsApp',
-          'Uma nova aba foi aberta com seu pedido. Complete o envio no WhatsApp!',
+          'WhatsApp',
+          'Uma nova aba foi aberta. Complete o envio da mensagem no WhatsApp!',
           [
             {
               text: 'Limpar Carrinho',
@@ -110,24 +104,44 @@ export default function CartScreen() {
         return;
       }
       
-      // Em dispositivos móveis
-      const supported = await Linking.canOpenURL(whatsappUrl);
+      // Em dispositivos móveis - tentar abrir
+      await Linking.openURL(whatsappUrl);
       
-      if (supported) {
-        await Linking.openURL(whatsappUrl);
-        
-        Alert.alert(
-          '✅ Pedido Enviado!',
-          'Seu pedido foi enviado pelo WhatsApp. Aguarde a confirmação do restaurante.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                clearCart();
-                router.push('/menu');
-              }
+      Alert.alert(
+        'Pedido Enviado!',
+        'Complete o envio no WhatsApp. Aguarde a confirmação do restaurante.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              clearCart();
+              router.push('/menu');
             }
-          ]
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Erro ao abrir WhatsApp:', error);
+      
+      // Fallback - tentar wa.me
+      const fallbackUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+      
+      if (Platform.OS === 'web') {
+        window.open(fallbackUrl, '_blank');
+        return;
+      }
+      
+      try {
+        await Linking.openURL(fallbackUrl);
+      } catch (e) {
+        Alert.alert(
+          'Erro ao abrir WhatsApp',
+          `Entre em contato diretamente pelo número: ${whatsapp}`,
+          [{ text: 'OK' }]
+        );
+      }
+    }
+  };
         );
       } else {
         // Fallback: tentar abrir mesmo assim
