@@ -425,7 +425,7 @@ def get_orders(
             query["created_at"] = {"$lte": datetime.fromisoformat(end_date)}
     if status:
         query["status"] = status
-    orders = serialize_list(orders_col.find(query).sort("created_at", -1))
+    orders = serialize_list(orders_col.find(query).sort("created_at", -1).limit(500))
     return {"success": True, "orders": orders}
 
 @app.post("/api/orders")
