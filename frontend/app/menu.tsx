@@ -417,7 +417,21 @@ export default function MenuScreen() {
           </View>
         ))}
 
-        <View style={{ height: 100 }} />
+        {/* Footer com acesso ao Admin */}
+        <View style={styles.footerSection}>
+          <TouchableOpacity 
+            style={styles.adminButton}
+            onPress={() => router.push('/admin-login')}
+          >
+            <Ionicons name="settings" size={18} color="#666" />
+            <Text style={styles.adminButtonText}>Área do Administrador</Text>
+          </TouchableOpacity>
+          <Text style={[styles.footerText, { color: isDark ? '#444' : '#ccc' }]}>
+            Seven Menu Experience © 2024
+          </Text>
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
