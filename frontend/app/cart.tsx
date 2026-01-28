@@ -141,13 +141,13 @@ export default function CartScreen() {
       if (Platform.OS === 'web') {
         window.open(url, '_blank');
         Alert.alert('WhatsApp', 'Complete o envio na nova aba!', [
-          { text: 'Limpar Carrinho', onPress: () => { clearCart(); router.push('/menu'); } },
+          { text: 'Limpar Carrinho', onPress: () => { clearCart(); router.push('/restaurantesena'); } },
           { text: 'OK' }
         ]);
       } else {
         await Linking.openURL(url);
         clearCart();
-        router.push('/menu');
+        router.push('/restaurantesena');
       }
     } catch (error) {
       Alert.alert('Erro', `Entre em contato: ${whatsapp}`);
@@ -157,7 +157,7 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/menu')}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/restaurantesena')}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
         
@@ -169,7 +169,7 @@ export default function CartScreen() {
           <Text style={styles.emptySubtitle}>Adicione itens do cardápio para fazer seu pedido</Text>
           <TouchableOpacity 
             style={[styles.emptyBtn, { backgroundColor: primaryColor }]}
-            onPress={() => router.push('/menu')}
+            onPress={() => router.push('/restaurantesena')}
           >
             <Text style={styles.emptyBtnText}>Ver Cardápio</Text>
           </TouchableOpacity>
@@ -185,7 +185,7 @@ export default function CartScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBackBtn} onPress={() => router.push('/menu')}>
+        <TouchableOpacity style={styles.headerBackBtn} onPress={() => router.push('/restaurantesena')}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Finalizar Pedido</Text>
