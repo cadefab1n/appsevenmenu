@@ -39,7 +39,8 @@ except Exception as e:
     print(f"ERROR: MongoDB connection failed: {e}")
     sys.exit(1)
 
-db = client["seven_menu"]
+# Use DB_NAME from environment variable for production (Atlas), fallback for local
+db = client[os.getenv('DB_NAME', 'seven_menu')]
 
 # Collections
 restaurants_col = db["restaurants"]
