@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -21,41 +21,27 @@ interface CartStore {
   getTotalPrice: () => number;
 }
 
-// Storage personalizado para funcionar em web e mobile
-const customStorage: StateStorage = {
-  getItem: async (name: string): Promise<string | null> => {
-    if (Platform.OS === 'web') {
-      try {
-        return localStorage.getItem(name);
-      } catch {
-        return null;
-      }
-    }
-    return AsyncStorage.getItem(name);
+// Storage simples para web
+const webStorage = {
+  getItem: (name: string) => {
+    if (typeof window === 'undefined') return null;
+    const value = localStorage.getItem(name);
+    return value ? JSON.parse(value) : null;
   },
-  setItem: async (name: string, value: string): Promise<void> => {
-    if (Platform.OS === 'web') {
-      try {
-        localStorage.setItem(name, value);
-      } catch {
-        // Ignora erros de localStorage
-      }
-      return;
-    }
-    await AsyncStorage.setItem(name, value);
+  setItem: (name: string, value: unknown) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(name, JSON.stringify(value));
   },
-  removeItem: async (name: string): Promise<void> => {
-    if (Platform.OS === 'web') {
-      try {
-        localStorage.removeItem(name);
-      } catch {
-        // Ignora erros
-      }
-      return;
-    }
-    await AsyncStorage.removeItem(name);
+  removeItem: (name: string) => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(name);
   },
 };
+
+// Escolher storage baseado na plataforma
+const storage = Platform.OS === 'web' 
+  ? createJSONStorage(() => webStorage)
+  : createJSONStorage(() => AsyncStorage);
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -108,8 +94,8 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: 'seven-menu-cart',
-      storage: createJSONStorage(() => customStorage),
+      name: 'seven-cart',
+      storage: storage,
     }
   )
 );
