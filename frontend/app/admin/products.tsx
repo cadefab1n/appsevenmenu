@@ -53,6 +53,10 @@ export default function ProductsScreen() {
   
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{visible: boolean, product: Product | null}>({
+    visible: false,
+    product: null
+  });
   const [formData, setFormData] = useState({
     name: '',
     description: '',
