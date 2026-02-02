@@ -1076,4 +1076,59 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  deleteModalContent: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  deleteModalText: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  deleteModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  deleteModalButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelModalButton: {
+    backgroundColor: '#F3F4F6',
+  },
+  cancelModalButtonText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmDeleteButton: {
+    backgroundColor: '#EF4444',
+  },
+  confirmDeleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
