@@ -659,8 +659,10 @@ def get_heatmap_analytics(restaurant_id: str):
 # ============== QR CODE ==============
 @app.get("/api/qrcode/{restaurant_id}")
 def generate_qrcode(restaurant_id: str, source: str = "qrcode"):
-    base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-    menu_url = f"{base_url}/menu?source={source}"
+    base_url = os.getenv("FRONTEND_URL")
+    if not base_url:
+        raise HTTPException(status_code=500, detail="FRONTEND_URL not configured")
+    menu_url = f"{base_url}/restaurantesena?source={source}"
     
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(menu_url)
