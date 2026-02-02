@@ -127,34 +127,46 @@ export default function CategoriesScreen() {
   };
 
   const handleDelete = (categoryId: string, categoryName: string) => {
-    Alert.alert(
-      'Confirmar',
-      `Deseja deletar a categoria "${categoryName}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Deletar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const res = await fetch(`${API_URL}/api/categories/${categoryId}`, {
-                method: 'DELETE',
-              });
-              const result = await res.json();
-              if (result.success) {
-                Alert.alert('Sucesso', 'Categoria deletada!');
-                loadData();
-              } else {
-                Alert.alert('Erro', result.detail || 'Não foi possível deletar');
-              }
-            } catch (error) {
-              Alert.alert('Erro', 'Falha ao deletar categoria');
-              console.error(error);
-            }
-          },
-        },
-      ]
-    );
+    // Use custom modal instead of Alert.alert for web compatibility
+    setDeleteModal({
+      visible: true,
+      id: categoryId,
+      name: categoryName
+    });
+  };
+
+  const confirmDelete = async () => {
+    const categoryId = deleteModal.id;
+    setDeleteModal({ visible: false, id: '', name: '' });
+    
+    try {
+      const res = await fetch(`${API_URL}/api/categories/${categoryId}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
+      if (result.success) {
+        // Show success feedback
+        if (Platform.OS === 'web') {
+          window.alert('Categoria deletada com sucesso!');
+        } else {
+          Alert.alert('Sucesso', 'Categoria deletada!');
+        }
+        loadData();
+      } else {
+        if (Platform.OS === 'web') {
+          window.alert(result.detail || 'Não foi possível deletar');
+        } else {
+          Alert.alert('Erro', result.detail || 'Não foi possível deletar');
+        }
+      }
+    } catch (error) {
+      if (Platform.OS === 'web') {
+        window.alert('Falha ao deletar categoria');
+      } else {
+        Alert.alert('Erro', 'Falha ao deletar categoria');
+      }
+      console.error(error);
+    }
   };
 
   if (loading) {
