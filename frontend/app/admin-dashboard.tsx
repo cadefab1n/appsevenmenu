@@ -56,35 +56,33 @@ export default function AdminDashboard() {
   }, [authLoading, token, user]);
 
   const loadData = async () => {
+    if (!token || !restaurant) {
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const res = await fetch(`${API_URL}/api/restaurants`);
-      const data = await res.json();
+      // Load stats with authentication
+      const headers = { Authorization: `Bearer ${token}` };
       
-      if (data.restaurants?.length > 0) {
-        const rest = data.restaurants[0];
-        setRestaurantName(rest.name);
-        setRestaurantId(rest.id);
-        
-        // Load stats
-        const [catRes, prodRes, dashRes] = await Promise.all([
-          fetch(`${API_URL}/api/restaurants/${rest.id}/categories`),
-          fetch(`${API_URL}/api/restaurants/${rest.id}/products`),
-          fetch(`${API_URL}/api/restaurants/${rest.id}/analytics/dashboard`),
-        ]);
-        
-        const catData = await catRes.json();
-        const prodData = await prodRes.json();
-        const dashData = await dashRes.json();
-        
-        setStats({
-          categories: catData.categories?.length || 0,
-          products: prodData.products?.length || 0,
-          combos: 0,
-        });
-        
-        if (dashData.success) {
-          setDashboard(dashData.dashboard);
-        }
+      const [catRes, prodRes, dashRes] = await Promise.all([
+        fetch(`${API_URL}/api/categories`, { headers }),
+        fetch(`${API_URL}/api/products`, { headers }),
+        fetch(`${API_URL}/api/analytics/dashboard`, { headers }),
+      ]);
+      
+      const catData = await catRes.json();
+      const prodData = await prodRes.json();
+      const dashData = await dashRes.json();
+      
+      setStats({
+        categories: catData.categories?.length || 0,
+        products: prodData.products?.length || 0,
+        combos: 0,
+      });
+      
+      if (dashData.success) {
+        setDashboard(dashData.dashboard);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -97,11 +95,11 @@ export default function AdminDashboard() {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  }, []);
+  }, [token, restaurant]);
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('admin_authenticated');
-    router.replace('/admin-login');
+    await logout();
+    router.replace('/login');
   };
 
   const menuItems = [
@@ -116,7 +114,7 @@ export default function AdminDashboard() {
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
   const formatPercent = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color="#3B82F6" />
