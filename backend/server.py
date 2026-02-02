@@ -229,6 +229,7 @@ def create_category(category: Category):
     data = category.dict()
     data["created_at"] = datetime.utcnow()
     result = categories_col.insert_one(data)
+    data.pop("_id", None)  # Remove ObjectId before returning
     data["id"] = str(result.inserted_id)
     return {"success": True, "category": data}
 
