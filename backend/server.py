@@ -295,6 +295,7 @@ def create_product(product: Product):
     data["orders"] = 0
     data["revenue"] = 0
     result = products_col.insert_one(data)
+    data.pop("_id", None)  # Remove ObjectId before returning
     data["id"] = str(result.inserted_id)
     return {"success": True, "product": data}
 
