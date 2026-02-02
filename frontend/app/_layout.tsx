@@ -25,7 +25,6 @@ export default function RootLayout() {
         <Stack.Screen name="cart" />
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
-        <Stack.Screen name="admin-login" />
         <Stack.Screen name="admin-dashboard" />
         <Stack.Screen name="admin" />
       </Stack>
