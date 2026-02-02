@@ -325,6 +325,7 @@ def duplicate_product(product_id: str):
     original["orders"] = 0
     original["revenue"] = 0
     result = products_col.insert_one(original)
+    original.pop("_id", None)  # Remove the ObjectId that was added by insert_one
     original["id"] = str(result.inserted_id)
     return {"success": True, "product": original}
 
