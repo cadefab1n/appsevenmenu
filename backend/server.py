@@ -256,6 +256,7 @@ def duplicate_category(category_id: str):
     original["name"] = f"{original['name']} (cópia)"
     original["created_at"] = datetime.utcnow()
     result = categories_col.insert_one(original)
+    original.pop("_id", None)  # Remove the ObjectId that was added by insert_one
     original["id"] = str(result.inserted_id)
     return {"success": True, "category": original}
 
