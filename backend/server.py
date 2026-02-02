@@ -367,6 +367,7 @@ def create_combo(combo: Combo):
     if data["original_price"] > 0:
         data["discount_percent"] = round((1 - data["combo_price"] / data["original_price"]) * 100)
     result = combos_col.insert_one(data)
+    data.pop("_id", None)  # Remove ObjectId before returning
     data["id"] = str(result.inserted_id)
     return {"success": True, "combo": data}
 
