@@ -135,9 +135,17 @@ export default function ProductsScreen() {
     setModalVisible(true);
   };
 
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}: ${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.name || !formData.price || !formData.category_id) {
-      Alert.alert('Erro', 'Preencha os campos obrigatórios');
+      showAlert('Erro', 'Preencha os campos obrigatórios');
       return;
     }
 
@@ -165,44 +173,49 @@ export default function ProductsScreen() {
       });
 
       if (res.ok) {
-        Alert.alert('Sucesso', editingProduct ? 'Produto atualizado!' : 'Produto criado!');
+        showAlert('Sucesso', editingProduct ? 'Produto atualizado!' : 'Produto criado!');
         setModalVisible(false);
         loadData();
       }
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao salvar produto');
+      showAlert('Erro', 'Falha ao salvar produto');
     }
   };
 
   const handleDelete = (product: Product) => {
-    Alert.alert(
-      'Excluir Produto',
-      `Deseja excluir "${product.name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await fetch(`${API_URL}/api/products/${product.id}`, { method: 'DELETE' });
-              loadData();
-            } catch (error) {
-              Alert.alert('Erro', 'Falha ao excluir');
-            }
-          },
-        },
-      ]
-    );
+    setDeleteModal({ visible: true, product });
+  };
+
+  const confirmDelete = async () => {
+    const product = deleteModal.product;
+    setDeleteModal({ visible: false, product: null });
+    
+    if (!product) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/products/${product.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showAlert('Sucesso', 'Produto excluído!');
+        loadData();
+      } else {
+        showAlert('Erro', 'Falha ao excluir');
+      }
+    } catch (error) {
+      showAlert('Erro', 'Falha ao excluir');
+    }
   };
 
   const handleDuplicate = async (product: Product) => {
     try {
-      await fetch(`${API_URL}/api/products/${product.id}/duplicate`, { method: 'POST' });
-      Alert.alert('Sucesso', 'Produto duplicado!');
-      loadData();
+      const res = await fetch(`${API_URL}/api/products/${product.id}/duplicate`, { method: 'POST' });
+      if (res.ok) {
+        showAlert('Sucesso', 'Produto duplicado!');
+        loadData();
+      } else {
+        showAlert('Erro', 'Falha ao duplicar');
+      }
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao duplicar');
+      showAlert('Erro', 'Falha ao duplicar');
     }
   };
 
@@ -211,7 +224,7 @@ export default function ProductsScreen() {
       await fetch(`${API_URL}/api/products/${product.id}/toggle`, { method: 'PATCH' });
       loadData();
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao alterar status');
+      showAlert('Erro', 'Falha ao alterar status');
     }
   };
 
