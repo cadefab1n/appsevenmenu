@@ -606,6 +606,37 @@ export default function ProductsScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={deleteModal.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDeleteModal({ visible: false, product: null })}
+      >
+        <View style={styles.deleteModalOverlay}>
+          <View style={styles.deleteModalContent}>
+            <Text style={styles.deleteModalTitle}>Excluir Produto</Text>
+            <Text style={styles.deleteModalText}>
+              Deseja excluir "{deleteModal.product?.name}"?
+            </Text>
+            <View style={styles.deleteModalButtons}>
+              <TouchableOpacity
+                style={[styles.deleteModalButton, styles.cancelModalButton]}
+                onPress={() => setDeleteModal({ visible: false, product: null })}
+              >
+                <Text style={styles.cancelModalButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.deleteModalButton, styles.confirmDeleteButton]}
+                onPress={confirmDelete}
+              >
+                <Text style={styles.confirmDeleteButtonText}>Excluir</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
