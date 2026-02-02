@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 const { width } = Dimensions.get('window');
@@ -39,50 +39,56 @@ interface DashboardData {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user, restaurant, token, isLoading: authLoading, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [restaurantName, setRestaurantName] = useState('');
+  const [restaurantId, setRestaurantId] = useState('');
   const [stats, setStats] = useState({ products: 0, categories: 0, combos: 0 });
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!token || !user) {
-        router.replace('/login');
-        return;
-      }
-      loadData();
-    }
-  }, [authLoading, token, user]);
+    checkAuth();
+  }, []);
 
-  const loadData = async () => {
-    if (!token || !restaurant) {
-      setLoading(false);
+  const checkAuth = async () => {
+    const isAuth = await AsyncStorage.getItem('admin_authenticated');
+    if (!isAuth) {
+      router.replace('/admin-login');
       return;
     }
-    
+    loadData();
+  };
+
+  const loadData = async () => {
     try {
-      // Load stats with authentication
-      const headers = { Authorization: `Bearer ${token}` };
+      const res = await fetch(`${API_URL}/api/restaurants`);
+      const data = await res.json();
       
-      const [catRes, prodRes, dashRes] = await Promise.all([
-        fetch(`${API_URL}/api/categories`, { headers }),
-        fetch(`${API_URL}/api/products`, { headers }),
-        fetch(`${API_URL}/api/analytics/dashboard`, { headers }),
-      ]);
-      
-      const catData = await catRes.json();
-      const prodData = await prodRes.json();
-      const dashData = await dashRes.json();
-      
-      setStats({
-        categories: catData.categories?.length || 0,
-        products: prodData.products?.length || 0,
-        combos: 0,
-      });
-      
-      if (dashData.success) {
-        setDashboard(dashData.dashboard);
+      if (data.restaurants?.length > 0) {
+        const rest = data.restaurants[0];
+        setRestaurantName(rest.name);
+        setRestaurantId(rest.id);
+        
+        // Load stats
+        const [catRes, prodRes, dashRes] = await Promise.all([
+          fetch(`${API_URL}/api/restaurants/${rest.id}/categories`),
+          fetch(`${API_URL}/api/restaurants/${rest.id}/products`),
+          fetch(`${API_URL}/api/restaurants/${rest.id}/analytics/dashboard`),
+        ]);
+        
+        const catData = await catRes.json();
+        const prodData = await prodRes.json();
+        const dashData = await dashRes.json();
+        
+        setStats({
+          categories: catData.categories?.length || 0,
+          products: prodData.products?.length || 0,
+          combos: 0,
+        });
+        
+        if (dashData.success) {
+          setDashboard(dashData.dashboard);
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -95,11 +101,11 @@ export default function AdminDashboard() {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  }, [token, restaurant]);
+  }, []);
 
   const handleLogout = async () => {
-    await logout();
-    router.replace('/login');
+    await AsyncStorage.removeItem('admin_authenticated');
+    router.replace('/admin-login');
   };
 
   const menuItems = [
@@ -114,7 +120,7 @@ export default function AdminDashboard() {
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
   const formatPercent = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 
-  if (loading || authLoading) {
+  if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color="#3B82F6" />
@@ -128,10 +134,10 @@ export default function AdminDashboard() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Painel Admin</Text>
-          <Text style={styles.restaurantName}>{restaurant?.name || 'Meu Restaurante'}</Text>
+          <Text style={styles.restaurantName}>{restaurantName}</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => router.push(`/${restaurant?.slug || ''}`)}>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => router.push('/restaurantesena')}>
             <Ionicons name="eye-outline" size={22} color="#6B7280" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={handleLogout}>

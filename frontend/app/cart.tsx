@@ -27,7 +27,7 @@ const PAYMENT_METHODS = [
 
 export default function CartScreen() {
   const router = useRouter();
-  const { items, removeItem, updateQuantity, clearCart, getTotalItems, getTotalPrice, loadFromStorage } = useCartStore();
+  const { items, removeItem, updateQuantity, clearCart, getTotalItems, getTotalPrice } = useCartStore();
   const [whatsapp, setWhatsapp] = useState('');
   const [restaurantName, setRestaurantName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#E63946');
@@ -44,8 +44,6 @@ export default function CartScreen() {
   const [observation, setObservation] = useState('');
 
   useEffect(() => {
-    // Carregar dados do localStorage
-    loadFromStorage();
     loadRestaurantInfo();
   }, []);
 

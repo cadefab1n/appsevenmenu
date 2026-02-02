@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,396 +6,349 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Modal,
-  RefreshControl,
+  Alert,
   ActivityIndicator,
+  useColorScheme,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../contexts/AuthContext';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
-  description?: string;
-  icon?: string;
   order: number;
-  is_active: boolean;
+  active: boolean;
 }
 
 export default function CategoriesScreen() {
   const router = useRouter();
-  const { token } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    icon: '',
-  });
-  const [error, setError] = useState('');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
-  useEffect(() => {
-    if (token) {
-      loadData();
-    }
-  }, [token]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const loadData = async () => {
-    if (!token) return;
-    
     try {
-      const res = await fetch(`${API_URL}/api/categories`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setCategories(data.categories || []);
-    } catch (err) {
-      console.error('Error:', err);
+      const restaurantsRes = await fetch(`${API_URL}/api/restaurants`);
+      const restaurantsData = await restaurantsRes.json();
+      
+      if (restaurantsData.restaurants && restaurantsData.restaurants.length > 0) {
+        const restId = restaurantsData.restaurants[0].id;
+        setRestaurantId(restId);
+
+        const categoriesRes = await fetch(`${API_URL}/api/restaurants/${restId}/categories`);
+        const categoriesData = await categoriesRes.json();
+        setCategories(categoriesData.categories || []);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
+  useEffect(() => {
     loadData();
-  }, [token]);
-
-  const openModal = (category?: Category) => {
-    setError('');
-    if (category) {
-      setEditingCategory(category);
-      setFormData({
-        name: category.name,
-        description: category.description || '',
-        icon: category.icon || '',
-      });
-    } else {
-      setEditingCategory(null);
-      setFormData({ name: '', description: '', icon: '' });
-    }
-    setModalVisible(true);
-  };
-
-  const closeModal = () => {
-    setModalVisible(false);
-    setEditingCategory(null);
-    setError('');
-  };
+  }, []);
 
   const handleSave = async () => {
-    if (!formData.name.trim()) {
-      setError('Nome da categoria é obrigatório');
+    if (!name.trim()) {
+      Alert.alert('Erro', 'Digite o nome da categoria');
       return;
     }
 
     setSaving(true);
-    setError('');
-
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      };
-
-      const body = {
-        name: formData.name.trim(),
-        description: formData.description.trim() || null,
-        icon: formData.icon || null,
-      };
-
-      let res;
-      if (editingCategory) {
-        res = await fetch(`${API_URL}/api/categories/${editingCategory.id}`, {
+      if (editingId) {
+        // Update
+        const res = await fetch(`${API_URL}/api/categories/${editingId}`, {
           method: 'PUT',
-          headers,
-          body: JSON.stringify(body),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name.trim(),
+            restaurant_id: restaurantId,
+            order: categories.length,
+            active: true,
+          }),
         });
+        const result = await res.json();
+        if (result.success) {
+          Alert.alert('Sucesso', 'Categoria atualizada!');
+        }
       } else {
-        res = await fetch(`${API_URL}/api/categories`, {
+        // Create
+        const res = await fetch(`${API_URL}/api/categories`, {
           method: 'POST',
-          headers,
-          body: JSON.stringify(body),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name.trim(),
+            restaurant_id: restaurantId,
+            order: categories.length + 1,
+            active: true,
+          }),
         });
+        const result = await res.json();
+        if (result.success) {
+          Alert.alert('Sucesso', 'Categoria criada!');
+        }
       }
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || 'Erro ao salvar');
-      }
-
-      closeModal();
+      setName('');
+      setEditingId(null);
+      setShowForm(false);
       loadData();
-    } catch (err: any) {
-      setError(err.message || 'Erro ao salvar categoria');
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao salvar categoria');
+      console.error(error);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (categoryId: number) => {
-    try {
-      await fetch(`${API_URL}/api/categories/${categoryId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      loadData();
-    } catch (err) {
-      console.error('Error:', err);
-    }
+  const handleEdit = (category: Category) => {
+    setEditingId(category.id);
+    setName(category.name);
+    setShowForm(true);
   };
 
-  const icons = ['restaurant', 'pizza', 'fast-food', 'beer', 'cafe', 'ice-cream', 'nutrition', 'wine', 'fish', 'leaf'];
+  const handleDelete = (categoryId: string, categoryName: string) => {
+    Alert.alert(
+      'Confirmar',
+      `Deseja deletar a categoria "${categoryName}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Deletar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await fetch(`${API_URL}/api/categories/${categoryId}`, {
+                method: 'DELETE',
+              });
+              const result = await res.json();
+              if (result.success) {
+                Alert.alert('Sucesso', 'Categoria deletada!');
+                loadData();
+              } else {
+                Alert.alert('Erro', result.detail || 'Não foi possível deletar');
+              }
+            } catch (error) {
+              Alert.alert('Erro', 'Falha ao deletar categoria');
+              console.error(error);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+      <View style={[styles.container, styles.centerContent, { backgroundColor: isDark ? '#000' : '#fff' }]}>
+        <ActivityIndicator size="large" color="#FF6B35" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Categorias</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <View style={[styles.container, { backgroundColor: isDark ? '#000' : '#f5f5f5' }]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.push('/admin-dashboard')} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#000'} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>Categorias</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setEditingId(null);
+              setName('');
+              setShowForm(!showForm);
+            }}
+            style={styles.addButton}
+          >
+            <Ionicons name={showForm ? 'close' : 'add'} size={24} color="#FF6B35" />
+          </TouchableOpacity>
+        </View>
 
-      {/* Categories List */}
-      <ScrollView
-        style={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {categories.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="grid-outline" size={48} color="#D1D5DB" />
-            <Text style={styles.emptyText}>Nenhuma categoria cadastrada</Text>
-            <TouchableOpacity style={styles.emptyButton} onPress={() => openModal()}>
-              <Text style={styles.emptyButtonText}>Criar primeira categoria</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          categories.map((category, index) => (
-            <View key={category.id} style={styles.categoryCard}>
-              <View style={[styles.iconBox, { backgroundColor: '#EDE9FE' }]}>
-                <Ionicons name={(category.icon || 'restaurant') as any} size={24} color="#8B5CF6" />
-              </View>
-              <View style={styles.categoryInfo}>
-                <Text style={styles.categoryName}>{category.name}</Text>
-                {category.description && (
-                  <Text style={styles.categoryDesc} numberOfLines={1}>{category.description}</Text>
-                )}
-              </View>
-              <View style={styles.categoryActions}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => openModal(category)}>
-                  <Ionicons name="pencil" size={18} color="#8B5CF6" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(category.id)}>
-                  <Ionicons name="trash" size={18} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        )}
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+          {showForm && (
+            <View style={[styles.card, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
+              <Text style={[styles.cardTitle, { color: isDark ? '#fff' : '#000' }]}>
+                {editingId ? 'Editar Categoria' : 'Nova Categoria'}
               </Text>
-              <TouchableOpacity onPress={closeModal}>
-                <Ionicons name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody}>
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle" size={20} color="#DC2626" />
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
-
-              <Text style={styles.inputLabel}>Nome *</Text>
+              
               <TextInput
-                style={styles.input}
-                placeholder="Ex: Hambúrgueres"
-                value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
+                style={[styles.input, { backgroundColor: isDark ? '#000' : '#f9f9f9', color: isDark ? '#fff' : '#000' }]}
+                placeholder="Nome da categoria"
+                placeholderTextColor={isDark ? '#666' : '#999'}
+                value={name}
+                onChangeText={setName}
               />
-
-              <Text style={styles.inputLabel}>Descrição</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Descrição da categoria"
-                value={formData.description}
-                onChangeText={(text) => setFormData({ ...formData, description: text })}
-              />
-
-              <Text style={styles.inputLabel}>Ícone</Text>
-              <View style={styles.iconSelector}>
-                {icons.map(icon => (
-                  <TouchableOpacity
-                    key={icon}
-                    style={[
-                      styles.iconOption,
-                      formData.icon === icon && styles.iconOptionActive
-                    ]}
-                    onPress={() => setFormData({ ...formData, icon })}
-                  >
-                    <Ionicons name={icon as any} size={24} color={formData.icon === icon ? '#8B5CF6' : '#6B7280'} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={closeModal}>
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.saveBtn, saving && styles.saveBtnDisabled]} 
+              
+              <TouchableOpacity
+                style={[styles.primaryButton, { opacity: saving ? 0.5 : 1 }]}
                 onPress={handleSave}
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.saveBtnText}>Salvar</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {editingId ? 'Atualizar' : 'Criar Categoria'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
+          )}
+
+          <View style={[styles.card, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
+            <Text style={[styles.cardTitle, { color: isDark ? '#fff' : '#000' }]}>
+              Categorias Cadastradas ({categories.length})
+            </Text>
+
+            {categories.length === 0 ? (
+              <Text style={[styles.emptyText, { color: isDark ? '#aaa' : '#666' }]}>
+                Nenhuma categoria cadastrada
+              </Text>
+            ) : (
+              categories.map((category) => (
+                <View key={category.id} style={styles.categoryItem}>
+                  <View style={styles.categoryInfo}>
+                    <Ionicons name="grid" size={20} color="#FF6B35" />
+                    <Text style={[styles.categoryName, { color: isDark ? '#fff' : '#000' }]}>
+                      {category.name}
+                    </Text>
+                  </View>
+                  <View style={styles.categoryActions}>
+                    <TouchableOpacity
+                      onPress={() => handleEdit(category)}
+                      style={styles.actionButton}
+                    >
+                      <Ionicons name="pencil" size={20} color="#4CAF50" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDelete(category.id, category.name)}
+                      style={styles.actionButton}
+                    >
+                      <Ionicons name="trash" size={20} color="#F44336" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
-        </View>
-      </Modal>
-    </View>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: {
+    flex: 1,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 48,
-    paddingBottom: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingTop: 60,
+    paddingBottom: 16,
   },
   backButton: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center', alignItems: 'center',
+    width: 40,
   },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#1F2937' },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
   addButton: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#8B5CF6',
-    justifyContent: 'center', alignItems: 'center',
+    width: 40,
+    alignItems: 'flex-end',
   },
-  list: { flex: 1, padding: 16 },
-  emptyState: { alignItems: 'center', paddingVertical: 48 },
-  emptyText: { fontSize: 16, color: '#9CA3AF', marginTop: 12 },
-  emptyButton: {
-    marginTop: 16, paddingHorizontal: 20, paddingVertical: 10,
-    backgroundColor: '#8B5CF6', borderRadius: 8,
+  content: {
+    flex: 1,
+    padding: 16,
   },
-  emptyButtonText: { color: '#fff', fontWeight: '600' },
-  categoryCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 12,
-    padding: 12, marginBottom: 12,
+  card: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  iconBox: {
-    width: 48, height: 48, borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  categoryInfo: { flex: 1, marginLeft: 12 },
-  categoryName: { fontSize: 16, fontWeight: '600', color: '#1F2937' },
-  categoryDesc: { fontSize: 13, color: '#6B7280', marginTop: 2 },
-  categoryActions: { flexDirection: 'row', gap: 8 },
-  actionBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: { fontSize: 18, fontWeight: '600', color: '#1F2937' },
-  modalBody: { padding: 16 },
-  errorBox: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FEF2F2', padding: 12,
-    borderRadius: 8, marginBottom: 16, gap: 8,
-  },
-  errorText: { flex: 1, fontSize: 14, color: '#DC2626' },
-  inputLabel: {
-    fontSize: 14, fontWeight: '500', color: '#374151',
-    marginBottom: 6, marginTop: 12,
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
   },
   input: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8,
-    padding: 12, fontSize: 15, backgroundColor: '#F9FAFB',
+    height: 48,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    fontSize: 16,
   },
-  iconSelector: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8,
+  primaryButton: {
+    backgroundColor: '#FF6B35',
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
   },
-  iconOption: {
-    width: 48, height: 48, borderRadius: 12,
-    backgroundColor: '#F3F4F6', borderWidth: 2, borderColor: 'transparent',
-    justifyContent: 'center', alignItems: 'center',
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  iconOptionActive: { borderColor: '#8B5CF6', backgroundColor: '#EDE9FE' },
-  modalFooter: {
-    flexDirection: 'row', padding: 16, gap: 12,
-    borderTopWidth: 1, borderTopColor: '#E5E7EB',
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 14,
+    marginTop: 8,
   },
-  cancelBtn: {
-    flex: 1, paddingVertical: 14, borderRadius: 10,
-    backgroundColor: '#F3F4F6', alignItems: 'center',
+  categoryItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  cancelBtnText: { fontSize: 15, fontWeight: '600', color: '#6B7280' },
-  saveBtn: {
-    flex: 1, paddingVertical: 14, borderRadius: 10,
-    backgroundColor: '#8B5CF6', alignItems: 'center',
+  categoryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  saveBtnDisabled: { opacity: 0.7 },
-  saveBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  categoryName: {
+    fontSize: 16,
+    marginLeft: 12,
+    fontWeight: '600',
+  },
+  categoryActions: {
+    flexDirection: 'row',
+  },
+  actionButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
 });
