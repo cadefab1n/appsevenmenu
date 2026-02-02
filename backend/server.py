@@ -441,6 +441,7 @@ def create_order(order: Order):
     data["created_at"] = datetime.utcnow()
     data["order_number"] = f"#{random.randint(1000, 9999)}"
     result = orders_col.insert_one(data)
+    data.pop("_id", None)  # Remove ObjectId before returning
     data["id"] = str(result.inserted_id)
     
     # Update product stats
