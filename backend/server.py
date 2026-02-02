@@ -204,6 +204,7 @@ def create_restaurant(restaurant: Restaurant):
     data = restaurant.dict()
     data["created_at"] = datetime.utcnow()
     result = restaurants_col.insert_one(data)
+    data.pop("_id", None)  # Remove ObjectId before returning
     data["id"] = str(result.inserted_id)
     return {"success": True, "restaurant": data}
 
