@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,28 +24,32 @@ export default function RegisterScreen() {
   const [restaurantName, setRestaurantName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleRegister = async () => {
+    setError('');
+    
     if (!name.trim() || !email.trim() || !password.trim() || !restaurantName.trim()) {
-      Alert.alert('Erro', 'Preencha todos os campos');
+      setError('Preencha todos os campos');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      setError('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
     setLoading(true);
     try {
       await register(email, password, name, restaurantName);
-      Alert.alert(
-        'Conta criada!',
-        `Seu cardápio estará disponível em: /${restaurantName.toLowerCase().replace(/\s+/g, '-')}`,
-        [{ text: 'OK', onPress: () => router.replace('/admin-dashboard') }]
-      );
-    } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Erro ao criar conta');
+      setSuccess(true);
+      // Redirecionar após 2 segundos
+      setTimeout(() => {
+        router.replace('/admin-dashboard');
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar conta');
     } finally {
       setLoading(false);
     }
