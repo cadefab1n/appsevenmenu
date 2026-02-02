@@ -396,6 +396,7 @@ def create_promotion(promotion: Promotion):
     data = promotion.dict()
     data["created_at"] = datetime.utcnow()
     result = promotions_col.insert_one(data)
+    data.pop("_id", None)  # Remove ObjectId before returning
     data["id"] = str(result.inserted_id)
     return {"success": True, "promotion": data}
 
