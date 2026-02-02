@@ -22,13 +22,17 @@ import re
 load_dotenv()
 
 # ============== CONFIG ==============
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/sevenmenu")
+# Use SQLite for simplicity (can switch to PostgreSQL later)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sevenmenu.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "seven-menu-secret-key-2024-super-secure")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
 # ============== DATABASE ==============
-engine = create_engine(DATABASE_URL)
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
